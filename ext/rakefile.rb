@@ -23,7 +23,7 @@ $now = DateTime.now.xmlschema rescue Time.now.xmlschema
 
 $CC = ENV['CC'] || `which clang || which gcc`.strip
 $CFLAGS = ENV['CFLAGS'] || '-fconstant-cfstrings -fasm-blocks -fstrict-aliasing -Wall'
-$ARCHFLAGS = ENV['ARCHFLAGS'] || '-arch x86_64'
+$ARCHFLAGS = ENV['ARCHFLAGS'] || '-arch x86_64 -arch i386'
 $DEFINES = "-DNS_BUILD_32_LIKE_64 -DNS_BLOCK_ASSERTIONS -DPROJECT_VERSION=#{FSEVENT_WATCH_EXE_VERSION}"
 
 $GCC_C_LANGUAGE_STANDARD = ENV['GCC_C_LANGUAGE_STANDARD'] || 'gnu11'
@@ -48,13 +48,13 @@ CLOBBER.include $final_exe.to_s
 task :sw_vers do
   $mac_product_version = `sw_vers -productVersion`.strip
   $mac_build_version = `sw_vers -buildVersion`.strip
-  $MACOSX_DEPLOYMENT_TARGET = ENV['MACOSX_DEPLOYMENT_TARGET'] || $mac_product_version.sub(/\.\d*$/, '')
+  $MACOSX_DEPLOYMENT_TARGET = ENV['MACOSX_DEPLOYMENT_TARGET'] ||= '10.6'
   $CFLAGS = "#{$CFLAGS} -mmacosx-version-min=#{$MACOSX_DEPLOYMENT_TARGET}"
 end
 
 task :get_sdk_info => :sw_vers do
   $SDK_INFO = {}
-  version_info = `xcodebuild -version -sdk macosx#{$MACOSX_DEPLOYMENT_TARGET}`
+  version_info = `xcodebuild -version -sdk macosx#{$mac_product_version}`
   raise "invalid SDK" unless !!$?.exitstatus
   version_info.strip.each_line do |line|
     next if line.strip.empty?
@@ -218,6 +218,7 @@ end
 
 desc 'replace bundled fsevent_watch binary with build/fsevent_watch'
 task :replace_exe => :build do
+  mkdir_p File.dirname($final_exe)
   sh "mv #{$obj_dir.join('fsevent_watch')} #{$final_exe}"
 end
 

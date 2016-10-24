@@ -4,11 +4,25 @@ Bundler::GemHelper.install_tasks
 
 require 'rspec/core/rake_task'
 RSpec::Core::RakeTask.new(:spec)
-task :default => :spec
+task :default => ['bin/fsevent_watch', :spec]
+
+file 'bin/fsevent_watch' => [:bin, 'ext/build/fsevent_watch'] do
+  cp 'ext/build/fsevent_watch', 'bin/fsevent_watch'
+end
+
+file 'ext/build/fsevent_watch' do
+  cd 'ext' do
+    sh 'rake build'
+  end
+end
+
+file :bin do
+  mkdir_p 'bin'
+end
 
 namespace(:spec) do
   desc "Run all specs on multiple ruby versions"
-  task(:portability) do
+  task(:portability => 'bin/fsevent_watch') do
     versions = %w[2.2.2 2.3.0-dev rbx-2.5.5 jruby-1.7.9]
     versions.each do |version|
       # system <<-BASH
